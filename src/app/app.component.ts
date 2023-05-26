@@ -4,9 +4,19 @@ import { Chart, ChartConfiguration, ChartOptions } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { list, draw } from 'radash';
 import { draw as drawPattern } from 'patternomaly';
-import { ReplaySubject, Observable, from, reduce, mergeMap, zip, of, map } from 'rxjs';
+import {
+  ReplaySubject,
+  Observable,
+  from,
+  reduce,
+  mergeMap,
+  zip,
+  of,
+  map,
+} from 'rxjs';
 import { loremIpsum } from 'lorem-ipsum';
 import { generate as randomstring } from 'randomstring';
+import { chartData, chartOptions } from './chart';
 
 type Pattern = Parameters<typeof drawPattern>[0];
 
@@ -42,107 +52,50 @@ export class AppComponent implements OnInit {
   public barChartLegend = true;
   public barChartPlugins = [];
 
-  readonly columnsToDisplay = [
-    'rule',
-    'ConfigRuleState',
-    'region',
-    'resourceCounts',
-  ];
+  readonly columnsToDisplay = ['rule', 'region', 'resourceCounts'];
 
-  readonly chartOptions: ChartOptions = {
-    indexAxis: 'y',
-    scales: {
-      x: {
-        border: { display: false },
-        stacked: true,
-        ticks: { display: false },
-        grid: {
-          display: false,
-        },
-      },
-      y: {
-        border: { display: false },
-        stacked: true,
-        ticks: { display: false },
-        grid: {
-          display: false,
-        },
-      },
-    },
-    plugins: {
-      legend: {
-        display: false,
-        position: 'bottom',
-        onClick: (e, legendItem, legend) => {
-          console.debug('Legend clicked', { e, legendItem, legend });
-        },
-      },
-      tooltip: {
-        enabled: true,
-      },
-      datalabels: {
-        anchor: 'center',
-        align: 'center',
-        color: 'white',
-        backgroundColor: 'black',
-        font: {
-          weight: 'bold',
-        },
-        formatter: (value, context) => {
-          const total = context.chart.data.datasets
-            .map((dataset) => dataset.data)
-            .reduce((acc, data) => acc + (data[0] as number), 0);
-          return Math.round((value / total) * 100) + '%';
-        },
-      },
-    },
-    onResize: (chart, size) => {
-      console.debug('Resize: ', { chart, size });
-    },
-    responsive: false,
-  };
-
-
-  public dataSource = new MyDataSource()
+  public dataSource = new MyDataSource();
 
   constructor() {}
   ngOnInit(): void {
     Chart.register(ChartDataLabels);
-    const rules = list(1, 50, (i) => ({
+    const rules = list(1, Object.keys(chartData).length, (i) => ({
       ConfigRuleName: `ConfigRule-${i}`,
       ConfigRuleId: randomstring(10),
       region: `xx-${randomstring(4)}-1`,
       Description: loremIpsum(),
     }));
-    from(rules).pipe(
-      mergeMap((rule) => zip(
-        of(rule),
-        this.getResourceCounts$(rule.ConfigRuleName)
-      )),
-      map(([rule, resourceCounts]) => ({ ...rule, resourceCounts })),
-      reduce((acc, row) => {
-        acc.push(row);
-        return acc;
-      }, [] as DataRow[])
-    )
-    .subscribe((rules) => {
-      console.debug('Tick!');
-      this.dataSource.setRows(rules);
-    });
+
+    from(rules)
+      .pipe(
+        mergeMap((rule, idx) => zip(of(rule), this.getResourceCounts$(idx))),
+        map(([rule, resourceCounts]) => ({ ...rule, resourceCounts })),
+        reduce((acc, row) => {
+          acc.push(row);
+          return acc;
+        }, [] as DataRow[])
+      )
+      .subscribe((rules) => {
+        console.debug('Tick!');
+        this.dataSource.setRows(rules);
+      });
   }
 
-  private getResourceCounts$(configRuleName: string) {
-    return this.getResources$(configRuleName).pipe(
-      reduce((acc, resource) => {
-        const { ComplianceType } = resource;
-        acc[ComplianceType] ??= 0;
-        acc[ComplianceType]++;
-        return acc;
-      }, {} as Record<string, number>)
-    );
+  private getResourceCounts$(
+    index: number
+  ): Observable<Record<string, number>> {
+    // return this.getResources$(index).pipe(
+    //   reduce((acc, resource) => {
+    //     const { ComplianceType } = resource;
+    //     acc[ComplianceType] ??= 0;
+    //     acc[ComplianceType]++;
+    //     return acc;
+    //   }, {} as Record<string, number>)
+    // );
+    return of(chartData[index]);
   }
 
-  private getResources$(configRuleName: string) {
+  private getResources$(index: number) {
     return from(
       list(1, 50, () => ({
         ComplianceType: draw(AllComplianceTypes) as ComplianceType,
@@ -155,7 +108,7 @@ export class AppComponent implements OnInit {
       (complianceType) => !!counts[complianceType]
     );
     return {
-      options: this.chartOptions,
+      options: chartOptions,
       data: {
         labels: [''],
         datasets: complianceTypes.map((complianceType) => {
