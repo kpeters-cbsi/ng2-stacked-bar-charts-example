@@ -1,7 +1,28 @@
-<canvas baseChart
-        [data]="barChartData"
-        [options]="barChartOptions"
-        [plugins]="barChartPlugins"
-        [legend]="barChartLegend"
-        [type]="'bar'">
-</canvas>
+<table mat-table [dataSource]="dataSource">
+<ng-container matColumnDef="rule">
+  <th mat-header-cell *matHeaderCellDef>Rule</th>
+  <td mat-cell *matCellDef="let rule">
+    <div class="rule-name">
+      {{ rule.ConfigRuleName }} ({{ rule.ConfigRuleId }})
+    </div>
+    <div class="rule-description">{{ rule.Description }}</div>
+  </td>
+</ng-container>
+<mat-text-column name="region" headerText="Region"></mat-text-column>
+<ng-container matColumnDef="resourceCounts">
+  <th mat-header-cell *matHeaderCellDef></th>
+  <td mat-cell *matCellDef="let row">
+    <div class="chart-container">
+      <canvas
+        baseChart
+        [data]="getChartConfig(row.resourceCounts).data"
+        [options]="getChartConfig(row.resourceCounts).options"
+        [type]="getChartConfig(row.resourceCounts).type"
+        height="50px"
+      ></canvas>
+    </div>
+  </td>
+</ng-container>
+<tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
+<tr mat-row *matRowDef="let row; columns: columnsToDisplay"></tr>
+</table>

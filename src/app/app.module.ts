@@ -3,6 +3,7 @@ import { BrowserModule } from '@angular/platform-browser';
 
 import { AppComponent } from './app.component';
 import { NgChartsModule } from 'ng2-charts';
+import { MatTableModule } from '@angular/material/table';
 
 @NgModule({
   declarations: [
@@ -10,7 +11,8 @@ import { NgChartsModule } from 'ng2-charts';
   ],
   imports: [
     BrowserModule,
-    NgChartsModule
+    NgChartsModule,
+    MatTableModule
   ],
   providers: [],
   bootstrap: [AppComponent]
