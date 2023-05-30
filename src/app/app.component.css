@@ -1,3 +1,9 @@
+.rule-description {
+  font-style: italic;
+}
+
 .chart-container {
-  height: 6vh;
+  position: relative;
+  width: 8vw;
+  text-align: center;
 }
